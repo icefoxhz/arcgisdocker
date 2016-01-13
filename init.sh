@@ -1,19 +1,43 @@
 #!/bin/bash
+AGS_HOME="/usr/local/arcgis/server"
 
-# spawn the ArcGIS startup script in a new shell.
-( exec /usr/local/arcgis/server/startserver.sh )
+# a function to start arcgis server using its startup script.
+function start_arcgis_server {
+    /bin/bash ${AGS_HOME}/startserver.sh
+}
 
-# sometimes it takes a while for everything to settle down.
-# wait 5 seconds so that all processes are ready before beginning
-# the wait loop.
+# a function to stop arcgis server using its shutdown script.
+function stop_arcgis_server {
+    /bin/bash ${AGS_HOME}/stopserver.sh
+}
 
-echo "Waiting 5s for things to settle down..."
+# a function that spins, stopping every 1s to check if any arcgis
+# processes are running. the loop terminates when no running arcgis 
+# processesa are found.
+function wait_for_exit {
+    while pgrep -f ${AGS_HOME} > /dev/null; do
+        /bin/sleep 1
+    done
+    echo "All ArcGIS Server processes have stopped."
+}
 
-sleep 5
+# a function that is called whenever a signal is caught requesting that
+# the process be terminated. in most cases, this will come from Docker
+# as this script will be running as PID 1.
+function signal_trap {
+    echo "A SIGTERM or SIGINT signal was caught; trying to shut down."
+    stop_arcgis_server
+}
 
-echo "ArcGIS Server Startup Completed..."
+# trap termination signals and stop the server processes. this is
+# necessary because Docker will send SIGTERM to the container's
+# PID 1 when it tries to stop the container. since Bash doesn't
+# pass this along, we have to handle it ourselves.
+trap signal_trap SIGTERM SIGINT
 
-# loop until all java processes are finished.
-while pgrep java > /dev/null; do
-	sleep 0.5
-done
+# begin the server startup process.
+start_arcgis_server
+
+echo "Listening for termination signals..."
+# loop until all arcgis processes are finished.
+wait_for_exit
