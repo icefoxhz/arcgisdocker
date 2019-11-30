@@ -1,6 +1,6 @@
 # starting from a CentOS 7 base image.
 FROM centos:7
-MAINTAINER Rob Howard <howardro@ecu.edu>
+MAINTAINER huang zheng <huang8838@163.com>
 
 # metadata about this Docker image.
 LABEL name="ArcGIS for Server Advanced Enterprise" \
@@ -29,10 +29,10 @@ USER arcgis
 ENV HOME /usr/local/arcgis
 
 # install ArcGIS for Server 10.3.1 using slient installation.
-RUN tar xvzf /src/ArcGIS_for_Server_Linux_1031_145870.gz -C /tmp/ && \
-    rm /src/ArcGIS_for_Server_Linux_1031_145870.gz
+RUN tar xvzf /src/ArcGIS_for_Server_Linux_1031_145870.tar.gz -C /tmp/ && \
+    rm /src/ArcGIS_for_Server_Linux_1031_145870.tar.gz
 
-RUN /tmp/ArcGISServer/Setup -m silent -l yes
+RUN /tmp/ArcGISServer/Setup -m silent -l yes -a /src/ArcgisServer103.ecp
 
 # remove the temporary files created during the installation process.
 RUN rm -rf /tmp/ArcGISServer
@@ -42,5 +42,5 @@ RUN rm -rf /tmp/ArcGISServer
 EXPOSE 4000 4001 4002 4003 6080 6443
 
 # execute the init script.
-CMD ["/bin/bash", "/src/init.sh"]
+CMD ["/bin/bash", "/src/start.sh"]
 
