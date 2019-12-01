@@ -1,46 +1,41 @@
-# starting from a CentOS 7 base image.
+# 基础镜像centos7
 FROM centos:7
 MAINTAINER huang zheng <huang8838@163.com>
 
-# metadata about this Docker image.
-LABEL name="ArcGIS for Server Advanced Enterprise" \
-      version="10.3.1" \
-      description="ArcGIS for Server is software that makes your geographic information available to others in your organization and optionally anyone with an Internet connection." \
-      license="proprietary" \
-      url="http://www.esri.com/software/arcgis/arcgisserver"
-
-# update and install required packaged from yum.
+# 安装依赖环境
 RUN yum -y update && \
     yum -y install gettext net-tools fontconfig freetype libXfont libXtst libXi libXrender mesa-libGL mesa-libGLU Xvfb
 
-# add the contents of the build directory to the /src directory of the image.
+# 把当前目录下文件拷贝到镜像的/src目录下
 ADD . /src
 
-# make sure that the arcgis user account exists and that it has permission to modify files
-# in the installation and source paths.
+# 建立arcgis用户，赋值权限
 RUN /usr/sbin/useradd --create-home --home-dir /usr/local/arcgis --shell /bin/bash arcgis
 RUN chown -R arcgis /src && chmod -R 700 /src && \
     chown -R arcgis /usr/local/arcgis && chmod -R 700 /usr/local/arcgis
 
-# switch to the arcgis user account to setup the environment.
+# 切换到arcgis用户，接下来用arcgis用户操作
 USER arcgis
 
-# the path where ArcGIS for Server 10.3.1 should be installed.
+# 创建文件夹
+RUN mkdir -p /usr/local/arcgis/server/usr/directories && mkdir -p /usr/local/arcgis/server/usr/config-store
+
+# 安装目录
 ENV HOME /usr/local/arcgis
 
-# install ArcGIS for Server 10.3.1 using slient installation.
+# 解压，删除原文件
 RUN tar xvzf /src/ArcGIS_for_Server_Linux_1031_145870.tar.gz -C /tmp/ && \
     rm /src/ArcGIS_for_Server_Linux_1031_145870.tar.gz
 
+# 使用静默安装，并破解
 RUN /tmp/ArcGISServer/Setup -m silent -l yes -a /src/ArcgisServer103.ecp
 
-# remove the temporary files created during the installation process.
+# 删除安装文件
 RUN rm -rf /tmp/ArcGISServer
 
-# expose ports used for connecting to services and other site machines
-# but not ones that are used for internal purposes.
+# 暴露的端口
 EXPOSE 4000 4001 4002 4003 6080 6443
 
-# execute the init script.
+# 启动执行
 CMD ["/bin/bash", "/src/start.sh"]
 
